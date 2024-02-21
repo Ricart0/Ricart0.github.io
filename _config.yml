@@ -102,7 +102,7 @@ analytics:
 # Site Author
 author:
   name             : "Ricart0"
-  avatar           : "/assets/images/avatar2.png"
+  avatar           : "/assets/images/avatar.png"
   bio              : "Álvaro Ricart, Hacking"
   location         : "Valencia"
   email            : "info@snowscan.io"
