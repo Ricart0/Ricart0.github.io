@@ -3,6 +3,8 @@ main:
     url: /
   - title: "Posts"
     url: /year-archive/
+  - title: "Buscar"
+    url: /search/
   - title: "Categories"
     url: /categories/
   - title: "Tags"
