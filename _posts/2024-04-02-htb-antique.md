@@ -1,7 +1,7 @@
 ---
 layout: single
 title: Antique - Hack The Box
-excerpt: "Antique is an easy Linux machine featuring a network printer disclosing credentials through SNMP string which allows logging into telnet service. Foothold can be obtained by exploiting a feature in printer. CUPS administration service running locally. This service can be exploited further to >
+excerpt: "Antique is an easy Linux achine featuring a network printer disclosing credentials through SNMP string which allows logging into telnet service. Foothold can be obtained by exploiting a feature in printer. CUPS administration service running locally. This service can be exploited further to gain root access on the server."
 date: 2024-04-02
 classes: wide
 header:
