@@ -2,7 +2,7 @@
 layout: single
 title: ScriptKiddie - Hack The Box
 excerpt: "ScriptKiddie is an easy difficulty Linux machine that presents a Metasploit vulnerability ([CVE-2020-7384](https://cve.mitre.org/cgi-bin/cvename.cgi?name=2020-7384)), along with classic attacks such as OS command injection and an insecure passwordless `sudo` configuration. Initial foothold on the machine is gained by uploading a malicious `.apk` file from a web interface that calls a vulnerable version of `msfvenom` to generate downloadable payloads. Once shell is obtained, lateral movement to a second user is performed by injecting commands into a log file which provides unsanitized input to a Bash script that is triggered on file modification. This user is allowed to run `msfconsole` as `root` via `sudo` without supplying a password, resulting in the escalation of privileges."
-date: 2024-04-19
+date: 2024-04-18
 classes: wide
 header:
   teaser: /assets/images/htb-script/script.png
